@@ -2,68 +2,97 @@ import streamlit as st
 import pandas as pd
 import os
 
-# 페이지 설정
-st.set_page_config(page_title="독버섯 데이터 관리 시스템", layout="wide")
-
-st.title("🍄 독버섯 자생지 및 특성 관리 시스템")
-st.sidebar.header("메뉴 선택")
-
-# 데이터 저장 경로 설정
+# 데이터 파일 경로
 DATA_FILE = "mushroom_data.csv"
 
-# 초기 데이터 로드 함수
+# 데이터 불러오기
 def load_data():
     if os.path.exists(DATA_FILE):
         return pd.read_csv(DATA_FILE)
     else:
-        return pd.DataFrame(columns=["버섯 이름", "자생지", "독성 유무", "섭취 시 증상"])
+        return pd.DataFrame(columns=["자생지", "버섯 이름", "독성 유무", "증상"])
 
-if 'df' not in st.session_state:
-    st.session_state.df = load_data()
+# 데이터 저장
+def save_data(df):
+    df.to_csv(DATA_FILE, index=False)
 
-# --- 사이드바: 데이터 입력 창 ---
-with st.sidebar.form("input_form"):
-    st.subheader("새로운 데이터 입력")
-    name = st.text_input("버섯 이름")
+st.title("🍄 독버섯 데이터 관리 앱")
+
+# 데이터 로드
+df = load_data()
+
+# ------------------------
+# 입력 폼
+# ------------------------
+st.header("📌 데이터 입력")
+
+with st.form("input_form"):
     habitat = st.text_input("자생지")
-    is_toxic = st.selectbox("독성 유무", ["독성 있음", "식용/독성 없음", "미확인"])
-    symptoms = st.text_area("섭취 시 증상")
-    
-    submit_button = st.form_submit_button("데이터 추가")
+    name = st.text_input("버섯 이름")
+    toxicity = st.selectbox("독성 유무", ["독", "식용 가능", "불명"])
+    symptom = st.text_area("섭취 시 증상")
 
-    if submit_button:
-        new_data = pd.DataFrame([[name, habitat, is_toxic, symptoms]], 
-                                columns=st.session_state.df.columns)
-        st.session_state.df = pd.concat([st.session_state.df, new_data], ignore_index=True)
-        st.success(f"'{name}' 데이터가 추가되었습니다.")
+    submitted = st.form_submit_button("저장")
 
-# --- 메인 화면: 데이터 관리 및 분석 ---
-col1, col2 = st.columns([2, 1])
+    if submitted:
+        new_data = pd.DataFrame([{
+            "자생지": habitat,
+            "버섯 이름": name,
+            "독성 유무": toxicity,
+            "증상": symptom
+        }])
+
+        df = pd.concat([df, new_data], ignore_index=True)
+        save_data(df)
+        st.success("데이터가 저장되었습니다.")
+
+# ------------------------
+# 검색 기능
+# ------------------------
+st.header("🔍 데이터 검색")
+
+search_keyword = st.text_input("키워드 검색 (이름/자생지/증상)")
+
+if search_keyword:
+    filtered_df = df[
+        df.apply(lambda row: row.astype(str).str.contains(search_keyword, case=False).any(), axis=1)
+    ]
+else:
+    filtered_df = df
+
+# ------------------------
+# 빠른 필터
+# ------------------------
+st.header("⚡ 빠른 필터")
+
+col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("📋 현재 등록된 데이터")
-    st.dataframe(st.session_state.df, use_container_width=True)
-    
-    # CSV 저장 기능
-    if st.button("현재 데이터를 파일로 저장하기"):
-        st.session_state.df.to_csv(DATA_FILE, index=False, encoding='utf-8-sig')
-        st.info(f"'{DATA_FILE}'로 저장이 완료되었습니다.")
+    habitat_filter = st.selectbox("자생지 필터", ["전체"] + list(df["자생지"].dropna().unique()))
 
 with col2:
-    st.subheader("📥 CSV 데이터 불러오기")
-    uploaded_file = st.file_uploader("CSV 파일을 선택하세요", type=["csv"])
-    if uploaded_file is not None:
-        imported_df = pd.read_csv(uploaded_file)
-        if st.button("기존 데이터에 합치기"):
-            st.session_state.df = pd.concat([st.session_state.df, imported_df], ignore_index=True)
-            st.success("데이터 병합 완료!")
+    toxicity_filter = st.selectbox("독성 필터", ["전체"] + list(df["독성 유무"].dropna().unique()))
 
-# --- 데이터 내보내기 (Download) ---
-st.divider()
-csv_data = st.session_state.df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
+filtered_df2 = filtered_df.copy()
+
+if habitat_filter != "전체":
+    filtered_df2 = filtered_df2[filtered_df2["자생지"] == habitat_filter]
+
+if toxicity_filter != "전체":
+    filtered_df2 = filtered_df2[filtered_df2["독성 유무"] == toxicity_filter]
+
+# ------------------------
+# 결과 출력
+# ------------------------
+st.header("📊 데이터 목록")
+st.dataframe(filtered_df2)
+
+# ------------------------
+# 데이터 다운로드
+# ------------------------
 st.download_button(
-    label="전체 데이터 CSV로 내보내기",
-    data=csv_data,
-    file_name='mushroom_database_export.csv',
-    mime='text/csv',
+    label="📥 CSV 다운로드",
+    data=filtered_df2.to_csv(index=False).encode("utf-8-sig"),
+    file_name="filtered_mushroom_data.csv",
+    mime="text/csv"
 )
