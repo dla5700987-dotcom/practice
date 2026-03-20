@@ -25,6 +25,91 @@ if "df" not in st.session_state:
 df = st.session_state.df
 
 st.set_page_config(layout="wide")
+
+# ── 양피지 질감 배경 CSS ──────────────────────────────────────────────────────
+st.markdown("""
+<style>
+/* 전체 앱 배경 – 양피지 색상 + SVG 노이즈 필터로 질감 구현 */
+.stApp {
+    background-color: #f5e6c8;
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='parchment'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeBlend in='SourceGraphic' mode='multiply'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23parchment)' opacity='0.18'/%3E%3C/svg%3E");
+    background-size: 400px 400px;
+    background-repeat: repeat;
+    font-family: 'Georgia', serif;
+}
+
+/* 사이드바 배경 */
+[data-testid="stSidebar"] {
+    background-color: #e8d5a3 !important;
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeBlend in='SourceGraphic' mode='multiply'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23p)' opacity='0.22'/%3E%3C/svg%3E");
+    background-size: 400px 400px;
+    border-right: 2px solid #c9a96e !important;
+}
+
+/* 메인 컨텐츠 영역 */
+[data-testid="stMain"] {
+    background: transparent;
+}
+
+/* 텍스트 색상 – 오래된 잉크 느낌 */
+h1, h2, h3, h4, h5, h6,
+.stTitle, .stSubheader {
+    color: #3b2a1a !important;
+    font-family: 'Georgia', serif !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.12);
+}
+
+p, label, div {
+    color: #3b2a1a;
+}
+
+/* Expander – 두루마리 카드 느낌 */
+[data-testid="stExpander"] {
+    background-color: rgba(245, 228, 190, 0.85) !important;
+    border: 1px solid #c9a96e !important;
+    border-radius: 4px !important;
+    box-shadow: 2px 3px 8px rgba(100, 70, 20, 0.18);
+}
+
+/* 입력 필드 */
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] textarea {
+    background-color: #fdf6e3 !important;
+    border: 1px solid #c9a96e !important;
+    color: #3b2a1a !important;
+    font-family: 'Georgia', serif !important;
+}
+
+/* 버튼 */
+.stButton > button {
+    background-color: #8b6530 !important;
+    color: #fdf6e3 !important;
+    border: 1px solid #6b4c24 !important;
+    border-radius: 4px !important;
+    font-family: 'Georgia', serif !important;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+.stButton > button:hover {
+    background-color: #6b4c24 !important;
+}
+
+/* 구분선 */
+hr {
+    border-color: #c9a96e !important;
+}
+
+/* 성공/경고 메시지 */
+[data-testid="stAlert"] {
+    background-color: rgba(245, 228, 190, 0.9) !important;
+    border-color: #c9a96e !important;
+    color: #3b2a1a !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("📚 소설 데이터 저장 다이어리")
 
 # ---------------------------
