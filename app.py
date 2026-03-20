@@ -31,7 +31,7 @@ st.markdown("""
 <style>
 /* 전체 앱 배경 – 양피지 색상 + SVG 노이즈 필터로 질감 구현 */
 .stApp {
-    background-color: #ffffff;
+    background-color: #f5e9d0;
     font-family: 'Georgia', serif;
 }
 
