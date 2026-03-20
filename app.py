@@ -5,7 +5,7 @@ import os
 DATA_FILE = "books.csv"
 
 # ---------------------------
-# 초기 데이터 로드
+# 데이터 로드/저장
 # ---------------------------
 def load_data():
     if os.path.exists(DATA_FILE):
@@ -18,13 +18,17 @@ def load_data():
 def save_data(df):
     df.to_csv(DATA_FILE, index=False)
 
-df = load_data()
+# 초기 데이터
+if "df" not in st.session_state:
+    st.session_state.df = load_data()
+
+df = st.session_state.df
 
 st.set_page_config(layout="wide")
 st.title("📚 소설 데이터 저장 다이어리")
 
 # ---------------------------
-# 좌측 사이드바
+# 사이드바 입력
 # ---------------------------
 st.sidebar.header("📌 데이터 입력")
 
@@ -50,49 +54,82 @@ with st.sidebar.form("input_form"):
             "기타": etc
         }])
 
-        df = pd.concat([df, new_data], ignore_index=True)
-        save_data(df)
+        st.session_state.df = pd.concat([df, new_data], ignore_index=True)
+        save_data(st.session_state.df)
         st.success("저장 완료!")
 
 # ---------------------------
-# CSV 업로드 기능
+# CSV 업로드
 # ---------------------------
 st.sidebar.header("📂 CSV 업로드")
 uploaded_file = st.sidebar.file_uploader("CSV 파일 업로드", type=["csv"])
 
 if uploaded_file:
     upload_df = pd.read_csv(uploaded_file)
-    df = pd.concat([df, upload_df], ignore_index=True)
-    save_data(df)
-    st.sidebar.success("CSV 업로드 및 저장 완료!")
+    st.session_state.df = pd.concat([st.session_state.df, upload_df], ignore_index=True)
+    save_data(st.session_state.df)
+    st.sidebar.success("CSV 업로드 완료!")
 
 # ---------------------------
-# 키워드 검색 기능
+# 검색
 # ---------------------------
-st.sidebar.header("🔍 키워드 검색")
-
+st.sidebar.header("🔍 검색")
 keyword = st.sidebar.text_input("검색어 입력")
 
 if keyword:
-    filtered_df = df[
-        df.apply(lambda row: row.astype(str).str.contains(keyword, case=False).any(), axis=1)
+    filtered_df = st.session_state.df[
+        st.session_state.df.apply(lambda row: row.astype(str).str.contains(keyword, case=False).any(), axis=1)
     ]
 else:
-    filtered_df = df
+    filtered_df = st.session_state.df
 
 # ---------------------------
-# 우측 메인 화면 (표 + 확장)
+# 메인 화면
 # ---------------------------
 st.subheader("📊 저장된 데이터")
 
 if not filtered_df.empty:
     for idx, row in filtered_df.iterrows():
-        with st.expander(f"📖 {row['책 이름']} (클릭하여 상세 보기)"):
-            st.write(f"**저자:** {row['저자']}")
-            st.write(f"**출판사:** {row['출판사']}")
-            st.write(f"**장르:** {row['장르']}")
-            st.write(f"**등장인물:** {row['등장인물']}")
-            st.write(f"**줄거리:** {row['줄거리']}")
-            st.write(f"**기타:** {row['기타']}")
+        title_display = f"✍️ {row['저자']} - 📖 {row['책 이름']}"
+
+        with st.expander(title_display):
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.write(f"**책 이름:** {row['책 이름']}")
+                st.write(f"**저자:** {row['저자']}")
+                st.write(f"**출판사:** {row['출판사']}")
+                st.write(f"**장르:** {row['장르']}")
+
+            with col2:
+                st.write(f"**등장인물:** {row['등장인물']}")
+                st.write(f"**줄거리:** {row['줄거리']}")
+                st.write(f"**기타:** {row['기타']}")
+
+            # 수정 기능
+            st.markdown("---")
+            st.write("✏️ 수정")
+
+            new_title = st.text_input("책 이름", row["책 이름"], key=f"title_{idx}")
+            new_author = st.text_input("저자", row["저자"], key=f"author_{idx}")
+            new_publisher = st.text_input("출판사", row["출판사"], key=f"publisher_{idx}")
+            new_genre = st.text_input("장르", row["장르"], key=f"genre_{idx}")
+            new_characters = st.text_area("등장인물", row["등장인물"], key=f"char_{idx}")
+            new_story = st.text_area("줄거리", row["줄거리"], key=f"story_{idx}")
+            new_etc = st.text_area("기타", row["기타"], key=f"etc_{idx}")
+
+            if st.button("💾 수정 저장", key=f"save_{idx}"):
+                st.session_state.df.loc[idx] = [
+                    new_title, new_author, new_publisher,
+                    new_genre, new_characters, new_story, new_etc
+                ]
+                save_data(st.session_state.df)
+                st.success("수정 완료!")
+
+            # 삭제 기능
+            if st.button("🗑️ 삭제", key=f"delete_{idx}"):
+                st.session_state.df = st.session_state.df.drop(idx).reset_index(drop=True)
+                save_data(st.session_state.df)
+                st.warning("삭제 완료! 새로고침 해주세요.")
 else:
     st.info("데이터가 없습니다.")
